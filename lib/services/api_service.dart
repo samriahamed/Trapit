@@ -53,14 +53,65 @@ class ApiService {
 
     final data = json.decode(res.body);
 
-    // ✅ Save user to session
     UserSession.email = data['user']['email'];
     UserSession.fullName = data['user']['fullName'] ?? '';
   }
 
+  // ================= FORGOT PASSWORD =================
+
+  /// 📩 SEND OTP
+  static Future<void> sendOtp(String email) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password/send-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'email': email}),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to send OTP');
+    }
+  }
+
+  /// ✅ VERIFY OTP
+  static Future<void> verifyOtp({
+    required String email,
+    required String otp,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password/verify-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': email,
+        'otp': otp,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Invalid or expired OTP');
+    }
+  }
+
+  /// 🔑 RESET PASSWORD
+  static Future<void> resetPassword({
+    required String email,
+    required String newPassword,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/forgot-password/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': email,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Password reset failed');
+    }
+  }
+
   // ================= TRAPS =================
 
-  /// 📄 GET ALL TRAPS FOR USER
   static Future<List<TrapModel>> getUserTraps(String email) async {
     final res = await http.get(
       Uri.parse('$baseUrl/traps/user/$email'),
@@ -74,7 +125,6 @@ class ApiService {
     return data.map((e) => TrapModel.fromJson(e)).toList();
   }
 
-  /// ➕ ADD TRAP
   static Future<void> addTrap({
     required String email,
     required String trapId,
@@ -95,7 +145,6 @@ class ApiService {
     }
   }
 
-  /// 🔄 UPDATE STATUS
   static Future<void> updateTrapStatus({
     required String trapId,
     required bool isActive,
@@ -110,7 +159,6 @@ class ApiService {
     );
   }
 
-  /// 🗑️ DELETE TRAP
   static Future<void> deleteTrap(String trapId) async {
     await http.delete(
       Uri.parse('$baseUrl/traps/$trapId'),
