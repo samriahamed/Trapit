@@ -5,10 +5,11 @@ const { sendOTP } = require('../utils/email');
 
 const router = express.Router();
 
-/// =======================
-/// REGISTER
-/// =======================
 router.post('/register', async (req, res) => {
+
+  console.log("🔥 REGISTER REQUEST ARRIVED");
+  console.log(req.body);
+
   const { email, fullName, password } = req.body;
 
   if (!email || !password) {
@@ -16,44 +17,81 @@ router.post('/register', async (req, res) => {
   }
 
   try {
+    console.log("🔥 HASHING PASSWORD...");
     const hash = await bcrypt.hash(password, 10);
+    console.log("✅ PASSWORD HASHED");
 
+    console.log("🔥 INSERTING USER INTO DB...");
     db.run(
       `INSERT INTO users (email, full_name, password_hash)
        VALUES (?, ?, ?)`,
       [email, fullName || '', hash],
       function (err) {
+
         if (err) {
-          return res.status(400).json({ message: 'User already exists' });
+
+          console.error("🔥 REGISTER DB ERROR:", err);
+
+          if (err.message.includes("UNIQUE")) {
+            return res.status(400).json({
+              message: 'User already exists'
+            });
+          }
+
+          return res.status(500).json({
+            message: 'Database error',
+            error: err.message
+          });
         }
 
-        res.json({ message: 'User registered successfully' });
+        console.log("✅ USER CREATED:", email);
+
+        res.status(201).json({
+          message: 'User registered successfully'
+        });
       }
     );
+
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+
+    console.error("🔥 REGISTER SERVER ERROR:", err);
+
+    res.status(500).json({
+      message: 'Server error'
+    });
   }
 });
 
-/// =======================
-/// LOGIN
-/// =======================
 router.post('/login', (req, res) => {
+  console.log("🔥 LOGIN REQUEST ARRIVED");
+  console.log(req.body);
+
   const { email, password } = req.body;
 
+  console.log("🔥 FETCHING USER FROM DB...");
   db.get(
     `SELECT * FROM users WHERE email = ?`,
     [email],
     async (err, user) => {
-      if (err || !user) {
-        return res.status(401).json({ message: 'Invalid credentials' });
+      if (err) {
+        console.error("🔥 LOGIN DB ERROR:", err);
+        return res.status(500).json({ message: 'Database error' });
       }
 
+      if (!user) {
+        console.error("🔥 LOGIN FAILED: User not found", email);
+        return res.status(401).json({ message: 'Invalid credentials' });
+      }
+      console.log("✅ USER FOUND:", user.email);
+
+      console.log("🔥 COMPARING PASSWORDS...");
       const match = await bcrypt.compare(password, user.password_hash);
 
       if (!match) {
+        console.error("🔥 LOGIN FAILED: Password mismatch for user", email);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
+      console.log("✅ PASSWORD MATCH. LOGGING IN...");
 
       res.json({
         message: 'Login successful',
@@ -66,9 +104,6 @@ router.post('/login', (req, res) => {
   );
 });
 
-/// =======================
-/// SEND OTP (FORGOT PASSWORD)
-/// =======================
 router.post('/forgot-password/send-otp', (req, res) => {
   const { email } = req.body;
 
@@ -76,7 +111,6 @@ router.post('/forgot-password/send-otp', (req, res) => {
     return res.status(400).json({ message: 'Email required' });
   }
 
-  // Check user exists
   db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -105,9 +139,6 @@ router.post('/forgot-password/send-otp', (req, res) => {
   });
 });
 
-/// =======================
-/// VERIFY OTP
-/// =======================
 router.post('/forgot-password/verify-otp', (req, res) => {
   const { email, otp } = req.body;
 
@@ -132,9 +163,6 @@ router.post('/forgot-password/verify-otp', (req, res) => {
   );
 });
 
-/// =======================
-/// RESET PASSWORD (AFTER OTP)
-/// =======================
 router.post('/forgot-password/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
 
@@ -153,7 +181,6 @@ router.post('/forgot-password/reset-password', async (req, res) => {
           return res.status(500).json({ message: 'Failed to update password' });
         }
 
-        // Delete OTP after success
         db.run(`DELETE FROM otps WHERE email = ?`, [email]);
 
         res.json({ message: 'Password successfully changed' });

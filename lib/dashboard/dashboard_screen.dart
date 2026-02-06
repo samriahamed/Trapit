@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import '../models/trap_model.dart';
 import '../history/trappedhistory.dart';
 import '../profile/userprofile.dart';
-import '../live/watch_live.dart';
 import '../dashboard/trap_registration_screen.dart';
 import '../session/user_session.dart';
 import '../services/api_service.dart';

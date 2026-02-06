@@ -12,7 +12,7 @@ router.post('/', (req, res) => {
   }
 
   db.run(
-    `INSERT INTO traps (trap_id, trap_name, status, user_email)
+    `INSERT INTO traps (trap_id, trap_name, status, email)
      VALUES (?, ?, ?, ?)`,
     [trapId, trapName || 'Backyard Trap', 'inactive', email],
     function (err) {

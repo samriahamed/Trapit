@@ -51,42 +51,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// 🌐 LOGIN VIA BACKEND + SAVE SESSION
-  Future<void> _login() async {
+  void _login() async {
     setState(() => isLoading = true);
 
     try {
-      final user = await ApiService.login(
+      await ApiService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
-      // ✅ SAVE SESSION PROPERLY
-      Future<void> _login() async {
-        setState(() => isLoading = true);
-
-        try {
-          await ApiService.login(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-          );
-
-          // ✅ Persist already-set session
-          await UserSession.saveSession();
-
-          setState(() => isLoading = false);
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const DashboardScreen(),
-            ),
-          );
-        } catch (e) {
-          setState(() => isLoading = false);
-          _showError('Invalid email or password');
-        }
-      }
-
+      // ✅ Persist already-set session
+      await UserSession.saveSession();
 
       setState(() => isLoading = false);
 

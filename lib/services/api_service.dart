@@ -24,7 +24,11 @@ class ApiService {
       }),
     );
 
-    if (res.statusCode != 200) {
+    if (res.statusCode == 400) {
+      throw Exception('User already exists');
+    }
+
+    if (res.statusCode != 201) {
       throw Exception('Registration failed');
     }
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
-import '../services/api_service.dart';
+import '../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -66,52 +66,67 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  /// 🌐 REGISTER VIA BACKEND (FIXED)
+  /// ✅ REGISTER USING AuthService
   Future<void> _register() async {
     if (isSubmitting) return;
 
     setState(() => isSubmitting = true);
 
     try {
-      await ApiService.register(
+      bool success = await AuthService.registerUser(
+        name: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        fullName: _nameController.text.trim(),
         password: _passwordController.text,
       );
 
       if (!mounted) return;
       setState(() => isSubmitting = false);
 
-      // ✅ SUCCESS
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Text('Registration Successful'),
-          content: const Text('Please login to continue'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const LoginScreen(),
-                  ),
-                );
-              },
-              child: const Text('Login'),
-            ),
-          ],
-        ),
-      );
+      if (success) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Text('Registration Successful'),
+            content: const Text('Please login to continue'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const LoginScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Login'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        _showError("Registration failed. Please try again.");
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => isSubmitting = false);
 
-      _showError(
-        'This email is already registered.\nPlease login or use another email.',
-      );
+      final err = e.toString().toLowerCase();
+
+      String msg;
+
+      if (err.contains("user already exists")) {
+        msg =
+        'This email is already registered.\nPlease login or use another email.';
+      } else if (err.contains("network")) {
+        msg =
+        'Could not connect to the server.\nPlease check your internet or backend.';
+      } else {
+        msg = 'Server error. Please try again.';
+      }
+
+      _showError(msg);
     }
   }
 
@@ -158,11 +173,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'Start your intelligent animal management',
-                style: TextStyle(color: Colors.white70),
-              ),
               const SizedBox(height: 40),
 
               _inputField(
@@ -178,19 +188,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 required: true,
                 focusNode: _emailFocus,
                 keyboardType: TextInputType.emailAddress,
-                onChanged: (value) {
-                  _emailController.value = TextEditingValue(
-                    text: value.toLowerCase(),
-                    selection: TextSelection.collapsed(offset: value.length),
-                  );
-                },
-                validator: (value) {
-                  if (!_showEmailError) return null;
-                  if (value == null || !value.contains('@')) {
-                    return 'Invalid email address';
-                  }
-                  return null;
-                },
               ),
 
               const SizedBox(height: 18),
@@ -201,27 +198,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 required: true,
                 focusNode: _passwordFocus,
                 obscureText: _obscurePassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                validator: (value) {
-                  if (!_showPasswordError) return null;
-                  if (!RegExp(
-                      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$')
-                      .hasMatch(value ?? '')) {
-                    return 'Password must be strong';
-                  }
-                  return null;
-                },
               ),
 
               const SizedBox(height: 18),
@@ -232,27 +208,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 required: true,
                 focusNode: _confirmFocus,
                 obscureText: _obscureConfirm,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureConfirm
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureConfirm = !_obscureConfirm;
-                    });
-                  },
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Confirm password required';
-                  }
-                  if (value != _passwordController.text) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
               ),
 
               const SizedBox(height: 50),
@@ -262,9 +217,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isFormValid
-                        ? const Color(0xFF3B5CCC)
-                        : Colors.grey,
+                    backgroundColor:
+                    _isFormValid ? const Color(0xFF3B5CCC) : Colors.grey,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -272,24 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed:
                   (_isFormValid && !isSubmitting) ? _register : null,
                   child: isSubmitting
-                      ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Creating account...',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  )
+                      ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                     'Register',
                     style: TextStyle(
@@ -316,9 +253,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     FocusNode? focusNode,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
-    Widget? suffixIcon,
-    Function(String)? onChanged,
-    String? Function(String?)? validator,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -327,19 +261,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         focusNode: focusNode,
         keyboardType: keyboardType,
         obscureText: obscureText,
-        onChanged: onChanged,
-        validator: validator,
         decoration: InputDecoration(
           hintText: hint,
           suffixText: required ? '*' : null,
-          suffixStyle: const TextStyle(
-            color: Colors.red,
-            fontWeight: FontWeight.bold,
-          ),
           filled: true,
           fillColor: Colors.white,
-          suffixIcon: suffixIcon,
-          errorStyle: const TextStyle(color: Colors.red),
           contentPadding:
           const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           border: OutlineInputBorder(
