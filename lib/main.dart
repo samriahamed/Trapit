@@ -21,10 +21,16 @@ class TrapITApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TrapIT',
 
-      // ✅ Auto-login decision
-      home: UserSession.isLoggedIn
-          ? const DashboardScreen()
-          : const WelcomeScreen(),
+      // ✅ Cleaner navigation structure
+      routes: {
+        '/welcome': (_) => const WelcomeScreen(),
+        '/dashboard': (_) => const DashboardScreen(),
+      },
+
+      // ✅ Decide start screen safely
+      initialRoute:
+      UserSession.isLoggedIn ? '/dashboard' : '/welcome',
     );
   }
 }
+

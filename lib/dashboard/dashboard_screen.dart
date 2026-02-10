@@ -131,11 +131,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-                /// ⭐⭐⭐ ONLY CHANGE IS HERE ⭐⭐⭐
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.white),
                   onPressed: () async {
-
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -158,7 +156,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             floatingActionButton: FloatingActionButton(
               backgroundColor: const Color(0xFF3B5CCC),
-              child: const Icon(Icons.add),
+
+              // ✅ HOVER / LONG PRESS TEXT
+              tooltip: 'Add trap',
+
+              // ✅ ONLY + ICON WHITE
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+
               onPressed: () async {
                 await Navigator.push(
                   context,
@@ -261,8 +268,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(trap.trapName, style: const TextStyle(fontWeight: FontWeight.w700)),
-          Text('ID: ${trap.trapId}', style: const TextStyle(color: Colors.black54)),
+          Text(trap.trapName,
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text('ID: ${trap.trapId}',
+              style: const TextStyle(color: Colors.black54)),
           const Spacer(),
           Switch(
             value: trap.isActive,

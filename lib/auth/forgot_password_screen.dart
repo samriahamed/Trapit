@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../dashboard/trap_registration_screen.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../auth/login_screen.dart';
 import '../services/api_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -25,27 +24,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   bool _showEmailError = false;
   bool _showPasswordError = false;
-
   bool _otpVerified = false;
 
-  bool get _isEmailValid {
-    return _emailController.text.isNotEmpty &&
-        _emailController.text.contains('@');
-  }
+  bool get _isEmailValid =>
+      _emailController.text.isNotEmpty &&
+          _emailController.text.contains('@');
 
-  bool get _isFormValid {
-    return _emailController.text.isNotEmpty &&
-        _otpController.text.isNotEmpty &&
-        _passwordController.text.isNotEmpty &&
-        _confirmController.text.isNotEmpty &&
-        _otpVerified &&
-        _formKey.currentState?.validate() == true;
+  bool get _isFormValid =>
+      _emailController.text.isNotEmpty &&
+          _otpController.text.isNotEmpty &&
+          _passwordController.text.isNotEmpty &&
+          _confirmController.text.isNotEmpty &&
+          _otpVerified &&
+          _formKey.currentState?.validate() == true;
+
+  bool _isPasswordValid(String value) {
+    return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$').hasMatch(value);
   }
 
   @override
   void initState() {
     super.initState();
-
     _confirmFocus.addListener(() {
       if (_confirmFocus.hasFocus) {
         setState(() => _showPasswordError = true);
@@ -54,49 +53,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
   }
 
-  /// SEND OTP
   Future<void> _sendOtp() async {
     setState(() => _showEmailError = true);
     _formKey.currentState?.validate();
-
     try {
-      await ApiService.sendOtp(
-        _emailController.text.trim(),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("OTP sent to email")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to send OTP")),
-      );
+      await ApiService.sendOtp(_emailController.text.trim());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("OTP sent to email")));
+    } catch (_) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Failed to send OTP")));
     }
   }
 
-  /// VERIFY OTP
   Future<void> _verifyOtp() async {
     try {
       await ApiService.verifyOtp(
         email: _emailController.text.trim(),
         otp: _otpController.text.trim(),
       );
-
-      setState(() {
-        _otpVerified = true;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("OTP Verified")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid or expired OTP")),
-      );
+      setState(() => _otpVerified = true);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("OTP Verified")));
+    } catch (_) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Invalid or expired OTP")));
     }
   }
 
-  /// RESET PASSWORD
   Future<void> _resetPassword() async {
     try {
       await ApiService.resetPassword(
@@ -104,26 +88,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         newPassword: _passwordController.text.trim(),
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Password changed successfully"),
-          duration: Duration(seconds: 2),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text("Password Changed",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          content: const Text(
+            "Password changed successfully.\nPlease login with your new password.",
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        LoginScreen(prefilledEmail: _emailController.text),
+                  ),
+                      (_) => false,
+                );
+              },
+              child: const Text("OK"),
+            ),
+          ],
         ),
       );
-
-      await Future.delayed(const Duration(seconds: 2));
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const DashboardScreen(),
-        ),
-      );
-
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Password reset failed")),
-      );
+    } catch (_) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Password reset failed")));
     }
   }
 
@@ -138,13 +131,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Forgot Password',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Forgot Password',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -160,16 +148,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 hint: 'Enter Registered Email',
                 required: true,
                 keyboardType: TextInputType.emailAddress,
-                onChanged: (value) {
-                  _emailController.value = TextEditingValue(
-                    text: value.toLowerCase(),
-                    selection:
-                    TextSelection.collapsed(offset: value.length),
-                  );
-                },
-                validator: (value) {
+                validator: (v) {
                   if (!_showEmailError) return null;
-                  if (value == null || !value.contains('@')) {
+                  if (v == null || !v.contains('@')) {
                     return 'Incorrect format';
                   }
                   return null;
@@ -178,28 +159,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
               const SizedBox(height: 14),
 
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 32),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isEmailValid
-                          ? const Color(0xFF3B5CCC)
-                          : Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed: _isEmailValid ? _sendOtp : null,
-                    child: const Text(
-                      'Send OTP',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
+              _actionButton('Send OTP', _isEmailValid, _sendOtp),
 
               const SizedBox(height: 24),
 
@@ -208,43 +168,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 hint: 'Enter OTP',
                 required: true,
                 keyboardType: TextInputType.number,
-                onChanged: (_) => setState(() {}),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'OTP required';
-                  }
-                  if (!_otpVerified) {
-                    return 'Verify OTP first';
-                  }
-                  return null;
-                },
               ),
 
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 32, top: 10),
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                      _otpController.text.trim().length == 6
-                          ? const Color(0xFF3B5CCC)
-                          : Colors.grey,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 0,
-                    ),
-                    onPressed:
-                    _otpController.text.trim().length == 6
-                        ? _verifyOtp
-                        : null,
-                    child: const Text(
-                      "Verify OTP",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
+              _actionButton(
+                'Verify OTP',
+                _otpController.text.trim().length == 6,
+                _verifyOtp,
               ),
 
               const SizedBox(height: 18),
@@ -255,106 +184,92 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 required: true,
                 obscureText: _obscurePassword,
                 enabled: _otpVerified,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscurePassword = !_obscurePassword;
-                    });
-                  },
-                ),
-                validator: (value) {
+                validator: (v) {
                   if (!_showPasswordError) return null;
-                  if (!RegExp(
-                      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$')
-                      .hasMatch(value ?? '')) {
+                  if (v == null || !_isPasswordValid(v)) {
                     return 'Password does not meet requirements';
                   }
                   return null;
                 },
+                suffixIcon: _eyeIcon(
+                  _obscurePassword,
+                      () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
               ),
 
-              const SizedBox(height: 6),
-
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 36),
+                padding: EdgeInsets.symmetric(horizontal: 36, vertical: 6),
                 child: Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'at least 8 characters with mixed case and numbers',
-                    style: TextStyle(
-                      color: Colors.white60,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: Colors.white60, fontSize: 12),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 18),
 
               _inputField(
                 controller: _confirmController,
                 hint: 'Confirm New Password',
                 required: true,
-                focusNode: _confirmFocus,
                 obscureText: _obscureConfirm,
                 enabled: _otpVerified,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscureConfirm
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _obscureConfirm = !_obscureConfirm;
-                    });
-                  },
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Confirm password required';
-                  }
-                  if (value != _passwordController.text) {
+                focusNode: _confirmFocus,
+                validator: (v) {
+                  if (v != _passwordController.text) {
                     return 'Password does not match';
                   }
                   return null;
                 },
+                suffixIcon: _eyeIcon(
+                  _obscureConfirm,
+                      () => setState(() => _obscureConfirm = !_obscureConfirm),
+                ),
               ),
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 40),
 
               SizedBox(
                 width: 300,
                 height: 52,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _isFormValid
-                        ? const Color(0xFF3B5CCC)
-                        : Colors.grey,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    backgroundColor:
+                    _isFormValid ? const Color(0xFF3B5CCC) : Colors.grey,
                   ),
                   onPressed: _isFormValid ? _resetPassword : null,
-                  child: const Text(
-                    'Reset Password',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  child: const Text('Reset Password',
+                      style: TextStyle(color: Colors.white)),
                 ),
               ),
-
-              const SizedBox(height: 40),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _eyeIcon(bool obscure, VoidCallback onTap) {
+    return IconButton(
+      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+      onPressed: onTap,
+    );
+  }
+
+  Widget _actionButton(String text, bool enabled, VoidCallback onTap) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 32),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+            enabled ? const Color(0xFF3B5CCC) : Colors.grey,
+            shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          ),
+          onPressed: enabled ? onTap : null,
+          child: Text(text, style: const TextStyle(color: Colors.white)),
         ),
       ),
     );
@@ -369,7 +284,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     bool obscureText = false,
     bool enabled = true,
     Widget? suffixIcon,
-    Function(String)? onChanged,
     String? Function(String?)? validator,
   }) {
     return Padding(
@@ -380,22 +294,26 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         keyboardType: keyboardType,
         obscureText: obscureText,
         enabled: enabled,
-        onChanged: onChanged,
         validator: validator,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: const TextStyle(color: Colors.black54),
-          suffixText: required ? '*' : null,
-          suffixStyle: const TextStyle(
-            color: Colors.red,
-            fontWeight: FontWeight.bold,
-          ),
           filled: true,
           fillColor: enabled ? Colors.white : Colors.grey.shade300,
-          suffixIcon: suffixIcon,
-          errorStyle: const TextStyle(color: Colors.red),
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          suffixIcon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (required)
+                const Padding(
+                  padding: EdgeInsets.only(right: 6),
+                  child: Text('*',
+                      style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                ),
+              if (suffixIcon != null) suffixIcon,
+            ],
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide.none,

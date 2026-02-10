@@ -8,7 +8,14 @@ import '../services/api_service.dart';
 import '../session/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+
+  // ✅ NEW (for forgot password redirect)
+  final String prefilledEmail;
+
+  const LoginScreen({
+    super.key,
+    this.prefilledEmail = '',
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -34,6 +41,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+
+    // ✅ AUTO-FILL EMAIL IF PROVIDED
+    if (widget.prefilledEmail.isNotEmpty) {
+      _emailController.text = widget.prefilledEmail.toLowerCase();
+    }
+
     _passwordFocus.addListener(() {
       if (_passwordFocus.hasFocus) {
         setState(() => _showEmailError = true);
@@ -59,8 +72,6 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-
-      // ✅ ApiService already saves session
 
       setState(() => isLoading = false);
 
