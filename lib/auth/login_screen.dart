@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// 🌐 LOGIN VIA BACKEND + SAVE SESSION
+  /// 🌐 LOGIN VIA BACKEND
   void _login() async {
     setState(() => isLoading = true);
 
@@ -60,8 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text,
       );
 
-      // ✅ Persist already-set session
-      await UserSession.saveSession();
+      // ✅ ApiService already saves session
 
       setState(() => isLoading = false);
 

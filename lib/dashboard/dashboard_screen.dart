@@ -23,7 +23,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _currentTrapIndex = 0;
   final PageController _pageController = PageController();
 
-  /// ✅ DASHBOARD-OWNED TRAPS
   List<TrapModel> _traps = [];
 
   @override
@@ -38,7 +37,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  /// 🌐 LOAD TRAPS FROM BACKEND
   Future<void> _loadTrapsFromServer() async {
     try {
       final data = await ApiService.getUserTraps(UserSession.email);
@@ -51,7 +49,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  /// BACK BUTTON CONFIRMATION
   Future<bool> _onWillPop() async {
     return await showDialog<bool>(
       context: context,
@@ -73,7 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         false;
   }
 
-  /// 🗑️ DELETE TRAP
   void _confirmDeleteTrap(int index) {
     final trap = _traps[index];
 
@@ -115,7 +111,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Scaffold(
             backgroundColor: const Color(0xFF0B2A4A),
 
-            /// APP BAR
             appBar: AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
@@ -135,10 +130,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   },
                 ),
+
+                /// ⭐⭐⭐ ONLY CHANGE IS HERE ⭐⭐⭐
                 IconButton(
                   icon: const Icon(Icons.person, color: Colors.white),
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (_) => UserProfileScreen(
@@ -147,6 +145,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                       ),
                     );
+
+                    setState(() {});
                   },
                 ),
               ],
@@ -178,7 +178,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  /// ================= UI BODY =================
   Widget _buildBody() {
     return SingleChildScrollView(
       child: Column(
@@ -201,7 +200,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
           const SizedBox(height: 24),
 
-          /// MY DEVICES
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(16),

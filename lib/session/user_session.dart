@@ -6,9 +6,10 @@ class UserSession {
 
   static bool get isLoggedIn => email.isNotEmpty;
 
+  /// ✅ SMART FALLBACK
   static String get displayName {
-    if (fullName.isNotEmpty) return fullName;
-    if (email.isNotEmpty) return email.split('@').first;
+    if (fullName.trim().isNotEmpty) return fullName.trim();
+    if (email.trim().isNotEmpty) return email.trim();
     return 'User';
   }
 
@@ -31,4 +32,3 @@ class UserSession {
     fullName = '';
   }
 }
-

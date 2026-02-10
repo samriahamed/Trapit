@@ -3,10 +3,10 @@ import 'auth/welcome_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'session/user_session.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Load saved session (NO return value)
+  // ✅ Load saved session BEFORE app starts
   await UserSession.loadSession();
 
   runApp(const TrapITApp());
@@ -21,7 +21,7 @@ class TrapITApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TrapIT',
 
-      // ✅ Auto-login decision (SAFE)
+      // ✅ Auto-login decision
       home: UserSession.isLoggedIn
           ? const DashboardScreen()
           : const WelcomeScreen(),

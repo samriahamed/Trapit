@@ -5,6 +5,9 @@ const { sendOTP } = require('../utils/email');
 
 const router = express.Router();
 
+
+// ================= REGISTER =================
+
 router.post('/register', async (req, res) => {
 
   console.log("🔥 REGISTER REQUEST ARRIVED");
@@ -62,6 +65,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
+
+// ================= LOGIN =================
+
 router.post('/login', (req, res) => {
   console.log("🔥 LOGIN REQUEST ARRIVED");
   console.log(req.body);
@@ -82,6 +88,7 @@ router.post('/login', (req, res) => {
         console.error("🔥 LOGIN FAILED: User not found", email);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
+
       console.log("✅ USER FOUND:", user.email);
 
       console.log("🔥 COMPARING PASSWORDS...");
@@ -91,6 +98,7 @@ router.post('/login', (req, res) => {
         console.error("🔥 LOGIN FAILED: Password mismatch for user", email);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
+
       console.log("✅ PASSWORD MATCH. LOGGING IN...");
 
       res.json({
@@ -103,6 +111,122 @@ router.post('/login', (req, res) => {
     }
   );
 });
+
+
+// ================= UPDATE USER NAME =================
+
+router.put('/update-name', (req, res) => {
+
+  const { email, fullName } = req.body;
+
+  if (!email || !fullName) {
+    return res.status(400).json({
+      message: 'Email and full name required'
+    });
+  }
+
+  db.run(
+    `UPDATE users
+     SET full_name = ?
+     WHERE email = ?`,
+    [fullName, email],
+    function (err) {
+
+      if (err) {
+        console.error("🔥 NAME UPDATE ERROR:", err);
+        return res.status(500).json({
+          message: 'Failed to update name'
+        });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({
+          message: 'User not found'
+        });
+      }
+
+      console.log("✅ NAME UPDATED:", fullName);
+
+      res.json({
+        message: 'Name updated successfully',
+        fullName
+      });
+    }
+  );
+});
+
+
+// ================= CHANGE PASSWORD (NEW) =================
+
+router.post('/change-password', async (req, res) => {
+
+  const { email, currentPassword, newPassword } = req.body;
+
+  if (!email || !currentPassword || !newPassword) {
+    return res.status(400).json({
+      message: 'Email, current password and new password required'
+    });
+  }
+
+  try {
+
+    db.get(
+      `SELECT * FROM users WHERE email = ?`,
+      [email],
+      async (err, user) => {
+
+        if (err) {
+          return res.status(500).json({ message: 'Database error' });
+        }
+
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+
+        // ✅ Verify current password
+        const match = await bcrypt.compare(
+          currentPassword,
+          user.password_hash
+        );
+
+        if (!match) {
+          return res.status(401).json({
+            message: 'Current password is incorrect'
+          });
+        }
+
+        // ✅ Hash new password
+        const hash = await bcrypt.hash(newPassword, 10);
+
+        // ✅ Update password
+        db.run(
+          `UPDATE users SET password_hash = ? WHERE email = ?`,
+          [hash, email],
+          function (err) {
+
+            if (err) {
+              return res.status(500).json({
+                message: 'Failed to update password'
+              });
+            }
+
+            res.json({
+              message: 'Password changed successfully'
+            });
+          }
+        );
+      }
+    );
+
+  } catch (err) {
+    res.status(500).json({
+      message: 'Server error'
+    });
+  }
+});
+
+
+// ================= FORGOT PASSWORD =================
 
 router.post('/forgot-password/send-otp', (req, res) => {
   const { email } = req.body;
@@ -117,7 +241,7 @@ router.post('/forgot-password/send-otp', (req, res) => {
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+    const expiresAt = Date.now() + 5 * 60 * 1000;
 
     db.run(
       `INSERT OR REPLACE INTO otps (email, otp, expires_at)

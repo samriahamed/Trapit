@@ -4,7 +4,8 @@ import 'dart:io';
 
 import 'change_password_screen.dart';
 import '../auth/login_screen.dart';
-import '../session/user_session.dart'; // ✅ CORRECT PATH
+import '../session/user_session.dart';
+import '../services/api_service.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String fullName;
@@ -41,7 +42,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     super.dispose();
   }
 
-  /// PICK PROFILE IMAGE
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -53,23 +53,53 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
-  /// SAVE CHANGES POPUP
-  void _showSaveSuccess() {
-    // ✅ SAVE NAME GLOBALLY
-    UserSession.fullName = _nameController.text.trim();
+  Future<void> _saveChanges() async {
+    final newName = _nameController.text.trim();
 
+    if (newName.isEmpty) {
+      _showError("Name cannot be empty");
+      return;
+    }
+
+    try {
+      await ApiService.updateUserName(newName);
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.7),
+        builder: (_) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Success',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: const Text('Successfully changed'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context, true);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      _showError("Failed to update name");
+    }
+  }
+
+  void _showError(String msg) {
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.7),
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text(
-          'Success',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text('Successfully changed'),
+        title: const Text('Error'),
+        content: Text(msg),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -80,7 +110,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// LOGOUT CONFIRMATION
   void _confirmLogout() {
     showDialog(
       context: context,
@@ -103,7 +132,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             onPressed: () {
               Navigator.pop(context);
 
-              // ✅ CLEAR SESSION
               UserSession.clear();
 
               Navigator.pushAndRemoveUntil(
@@ -126,19 +154,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0B2A4A),
 
-      /// APP BAR
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pop(context, true),
         ),
         title: const Text(
           'Profile',
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.bold, // ✅ BOLD
+            fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
@@ -149,7 +176,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             const SizedBox(height: 30),
 
-            /// PROFILE IMAGE
             GestureDetector(
               onTap: _pickImage,
               child: CircleAvatar(
@@ -169,7 +195,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 40),
 
-            /// FULL NAME (EDITABLE)
             _inputField(
               controller: _nameController,
               hint: 'Full Name',
@@ -178,7 +203,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 18),
 
-            /// EMAIL (NOT EDITABLE)
             _inputField(
               controller: _emailController,
               hint: 'Email Address',
@@ -187,7 +211,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 28),
 
-            /// ✅ CHANGE PASSWORD (FULL WIDTH NOW)
+            /// ✅ RESTORED CHANGE PASSWORD BUTTON
             SizedBox(
               width: 280,
               height: 45,
@@ -215,7 +239,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 28),
 
-            /// SAVE CHANGES
             SizedBox(
               width: 280,
               height: 50,
@@ -226,7 +249,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                onPressed: _showSaveSuccess,
+                onPressed: _saveChanges,
                 child: const Text(
                   'Save Changes',
                   style: TextStyle(
@@ -239,7 +262,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 22),
 
-            /// LOG OUT
             SizedBox(
               width: 160,
               height: 44,
@@ -265,7 +287,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  /// INPUT FIELD
   Widget _inputField({
     required TextEditingController controller,
     required String hint,

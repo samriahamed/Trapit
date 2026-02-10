@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../auth/forgot_password_screen.dart';
+import '../services/api_service.dart';
+import '../session/user_session.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -16,8 +18,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   bool _obscureCurrent = true;
   bool _obscureNew = true;
 
-  String _savedPassword = 'Password@123'; // 🔴 DEMO ONLY
-  bool _isCurrentCorrect = false;
   bool _showNewPasswordError = false;
 
   @override
@@ -27,52 +27,50 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     super.dispose();
   }
 
-  void _checkCurrentPassword(String value) {
-    setState(() {
-      _isCurrentCorrect = value == _savedPassword;
-    });
-  }
-
   bool _isNewPasswordValid(String value) {
     return RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$')
         .hasMatch(value);
   }
 
-  void _saveNewPassword() {
+  void _saveNewPassword() async {
     setState(() {
       _showNewPasswordError = true;
     });
 
-    if (!_isCurrentCorrect) {
-      _showError('Current password is incorrect');
+    if (!_isNewPasswordValid(_newController.text)) {
       return;
     }
 
-    if (!_isNewPasswordValid(_newController.text)) {
-      return; // error text will show
-    }
+    try {
+      await ApiService.changePassword(
+        email: UserSession.email,
+        currentPassword: _currentController.text.trim(),
+        newPassword: _newController.text.trim(),
+      );
 
-    // ✅ SAVE NEW PASSWORD (DEMO)
-    _savedPassword = _newController.text;
-
-    // ✅ SUCCESS MESSAGE FOR 1 SECOND
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withOpacity(0.7),
-      builder: (_) => const AlertDialog(
-        title: Text(
-          'Success',
-          style: TextStyle(fontWeight: FontWeight.bold),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black.withOpacity(0.7),
+        builder: (_) => const AlertDialog(
+          title: Text(
+            'Success',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Text('Password successfully changed'),
         ),
-        content: Text('Password successfully changed'),
-      ),
-    );
+      );
 
-    Timer(const Duration(seconds: 2), () {
-      Navigator.pop(context); // close dialog
-      Navigator.pop(context); // go back to profile
-    });
+      Timer(const Duration(seconds: 2), () {
+        Navigator.pop(context); // close dialog
+        Navigator.pop(context); // go back
+      });
+
+    } catch (e) {
+      _showError(
+        e.toString().replaceAll('Exception: ', ''),
+      );
+    }
   }
 
   void _showError(String message) {
@@ -122,7 +120,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   _obscureCurrent = !_obscureCurrent;
                 });
               },
-              onChanged: _checkCurrentPassword,
             ),
 
             const SizedBox(height: 24),
@@ -132,7 +129,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               controller: _newController,
               hint: 'Enter New Password',
               obscure: _obscureNew,
-              enabled: _isCurrentCorrect,
+              enabled: _currentController.text.isNotEmpty,
               onToggle: () {
                 setState(() {
                   _obscureNew = !_obscureNew;

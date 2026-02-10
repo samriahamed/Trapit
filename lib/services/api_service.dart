@@ -8,7 +8,6 @@ class ApiService {
 
   // ================= AUTH =================
 
-  /// 👤 REGISTER USER
   static Future<void> register({
     required String email,
     required String fullName,
@@ -33,7 +32,6 @@ class ApiService {
     }
   }
 
-  /// 🔐 LOGIN USER
   static Future<void> login({
     required String email,
     required String password,
@@ -55,11 +53,52 @@ class ApiService {
 
     UserSession.email = data['user']['email'];
     UserSession.fullName = data['user']['fullName'] ?? '';
+
+    await UserSession.saveSession();
+  }
+
+  /// ⭐ UPDATE NAME
+  static Future<void> updateUserName(String fullName) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/auth/update-name'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': UserSession.email,
+        'fullName': fullName,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update name');
+    }
+
+    UserSession.fullName = fullName;
+    await UserSession.saveSession();
+  }
+
+  /// 🔐 CHANGE PASSWORD (NEW)
+  static Future<void> changePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$baseUrl/auth/change-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'email': email,
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception(json.decode(res.body)['message']);
+    }
   }
 
   // ================= FORGOT PASSWORD =================
 
-  /// 📩 SEND OTP
   static Future<void> sendOtp(String email) async {
     final res = await http.post(
       Uri.parse('$baseUrl/auth/forgot-password/send-otp'),
@@ -72,7 +111,6 @@ class ApiService {
     }
   }
 
-  /// ✅ VERIFY OTP
   static Future<void> verifyOtp({
     required String email,
     required String otp,
@@ -91,7 +129,6 @@ class ApiService {
     }
   }
 
-  /// 🔑 RESET PASSWORD
   static Future<void> resetPassword({
     required String email,
     required String newPassword,
@@ -149,7 +186,7 @@ class ApiService {
     required String trapId,
     required bool isActive,
   }) async {
-    await http.put(
+    final res = await http.put(
       Uri.parse('$baseUrl/traps/status'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
@@ -157,11 +194,19 @@ class ApiService {
         'status': isActive ? 'active' : 'inactive',
       }),
     );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update trap status');
+    }
   }
 
   static Future<void> deleteTrap(String trapId) async {
-    await http.delete(
+    final res = await http.delete(
       Uri.parse('$baseUrl/traps/$trapId'),
     );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to delete trap');
+    }
   }
 }

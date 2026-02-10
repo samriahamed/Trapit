@@ -1,6 +1,7 @@
 const db = require('./db');
 
 db.serialize(() => {
+
   // USERS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -53,15 +54,6 @@ db.serialize(() => {
         expires_at INTEGER NOT NULL
       )
     `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS password_reset_otps (
-      email TEXT PRIMARY KEY,
-      otp TEXT NOT NULL,
-      expires_at INTEGER NOT NULL
-    )
-  `);
-
 
   console.log('All tables initialized successfully');
 });
