@@ -87,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
       setState(() => isSubmitting = false);
 
-      // ✅ SUCCESS POPUP
+      // SUCCESS POPUP
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -242,7 +242,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               ),
 
-              /// ✅ PASSWORD HELPER TEXT
+              /// PASSWORD HELPER TEXT
               const Padding(
                 padding:
                 EdgeInsets.symmetric(horizontal: 40, vertical: 6),
@@ -336,7 +336,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
 
-              /// ✅ LOGIN LINK
+              /// LOGIN LINK
               TextButton(
                 onPressed: () {
                   Navigator.pushReplacement(

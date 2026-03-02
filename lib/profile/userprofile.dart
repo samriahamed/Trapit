@@ -211,7 +211,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
             const SizedBox(height: 28),
 
-            /// ✅ RESTORED CHANGE PASSWORD BUTTON
+            /// RESTORED CHANGE PASSWORD BUTTON
             SizedBox(
               width: 280,
               height: 45,

@@ -113,7 +113,7 @@ class WelcomeScreen extends StatelessWidget {
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 15,
-                      fontWeight: FontWeight.w600, // 👈 slightly bolder
+                      fontWeight: FontWeight.w600, //slightly bolder
                       decoration: TextDecoration.underline,
                     ),
                   ),

@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'auth/welcome_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'session/user_session.dart';
+import 'package:media_kit/media_kit.dart';
+import 'services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ Load saved session BEFORE app starts
+  // Load saved session BEFORE app starts
   await UserSession.loadSession();
+
+  // 🔥 NEW — Validate user with backend
+  await UserSession.validateWithServer();
+
+  await NotificationService().init();
+
+  MediaKit.ensureInitialized();
 
   runApp(const TrapITApp());
 }
@@ -21,16 +30,15 @@ class TrapITApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'TrapIT',
 
-      // ✅ Cleaner navigation structure
+      // Cleaner navigation structure
       routes: {
         '/welcome': (_) => const WelcomeScreen(),
         '/dashboard': (_) => const DashboardScreen(),
       },
 
-      // ✅ Decide start screen safely
+      // Decide start screen safely
       initialRoute:
       UserSession.isLoggedIn ? '/dashboard' : '/welcome',
     );
   }
 }
-

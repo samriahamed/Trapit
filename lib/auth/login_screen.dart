@@ -9,7 +9,7 @@ import '../session/user_session.dart';
 
 class LoginScreen extends StatefulWidget {
 
-  // ✅ NEW (for forgot password redirect)
+  //NEW (for forgot password redirect)
   final String prefilledEmail;
 
   const LoginScreen({
@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
 
-    // ✅ AUTO-FILL EMAIL IF PROVIDED
+    // AUTO-FILL EMAIL IF PROVIDED
     if (widget.prefilledEmail.isNotEmpty) {
       _emailController.text = widget.prefilledEmail.toLowerCase();
     }
@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  /// 🌐 LOGIN VIA BACKEND
+  /// LOGIN VIA BACKEND
   void _login() async {
     setState(() => isLoading = true);
 

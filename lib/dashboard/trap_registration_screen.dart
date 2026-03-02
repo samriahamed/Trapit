@@ -17,10 +17,14 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
   final _trapIdController = TextEditingController();
   final _trapNameController = TextEditingController();
 
+  // 🔥 NEW — Trap IP controller
+  final _trapIpController = TextEditingController();
+
   bool isSubmitting = false;
 
   bool get _isFormValid {
     return _trapIdController.text.trim().isNotEmpty &&
+        _trapIpController.text.trim().isNotEmpty &&
         _formKey.currentState?.validate() == true;
   }
 
@@ -28,12 +32,14 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
   void dispose() {
     _trapIdController.dispose();
     _trapNameController.dispose();
+    _trapIpController.dispose();
     super.dispose();
   }
 
-  /// 🌐 REGISTER TRAP VIA BACKEND
+  /// REGISTER TRAP WITH DEVICE VERIFICATION
   Future<void> _registerTrap() async {
     final trapId = _trapIdController.text.trim();
+    final trapIp = _trapIpController.text.trim();
     final trapName = _trapNameController.text.trim().isEmpty
         ? 'Backyard Trap'
         : _trapNameController.text.trim();
@@ -41,6 +47,13 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
     setState(() => isSubmitting = true);
 
     try {
+      //  STEP 1 — VERIFY REAL DEVICE
+      await ApiService.verifyTrapDevice(
+        trapIp: trapIp,
+        expectedTrapId: trapId,
+      );
+
+      // STEP 2 — SAVE TO YOUR BACKEND (UNCHANGED)
       await ApiService.addTrap(
         email: UserSession.email,
         trapId: trapId,
@@ -49,7 +62,7 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
 
       setState(() => isSubmitting = false);
 
-      // ✅ SUCCESS POPUP (UNCHANGED UI)
+      // SUCCESS POPUP (UNCHANGED UI)
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -117,13 +130,16 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
     } catch (e) {
       setState(() => isSubmitting = false);
 
-      // 🔴 BACKEND DUPLICATE ERROR
+      // BETTER ERROR MESSAGE
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('Trap ID Error'),
+          title: const Text('Trap Verification Failed'),
           content: const Text(
-            'This Trap ID already exists. Please use a different Trap ID.',
+            'Unable to verify the trap.\n\n'
+                '• Check Trap IP\n'
+                '• Ensure trap is powered ON\n'
+                '• Ensure Trap ID is correct',
           ),
           actions: [
             TextButton(
@@ -141,7 +157,6 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0B2A4A),
 
-      /// APP BAR
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -167,7 +182,6 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
             children: [
               const SizedBox(height: 40),
 
-              /// AVATAR
               const CircleAvatar(
                 radius: 48,
                 backgroundColor: Colors.white,
@@ -180,7 +194,7 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
 
               const SizedBox(height: 40),
 
-              /// TRAP ID
+              // TRAP ID
               _inputField(
                 controller: _trapIdController,
                 hint: 'Assign Trap ID',
@@ -195,7 +209,22 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
 
               const SizedBox(height: 20),
 
-              /// TRAP NAME
+              // NEW — TRAP IP FIELD
+              _inputField(
+                controller: _trapIpController,
+                hint: 'Trap Device IP (e.g., 10.30.7.108)',
+                required: true,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Trap IP is required';
+                  }
+                  return null;
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // TRAP NAME
               _inputField(
                 controller: _trapNameController,
                 hint: 'Trap Name',
@@ -203,7 +232,6 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
 
               const SizedBox(height: 50),
 
-              /// REGISTER BUTTON
               SizedBox(
                 width: 180,
                 height: 44,
@@ -246,7 +274,6 @@ class _TrapRegistrationScreenState extends State<TrapRegistrationScreen> {
     );
   }
 
-  /// INPUT FIELD WIDGET (UNCHANGED)
   Widget _inputField({
     required TextEditingController controller,
     required String hint,

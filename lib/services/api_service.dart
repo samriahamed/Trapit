@@ -4,7 +4,7 @@ import '../session/user_session.dart';
 import '../models/trap_model.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
+  static const String baseUrl = 'http://10.153.9.168:3000/api';
 
   // ================= AUTH =================
 
@@ -46,7 +46,9 @@ class ApiService {
     );
 
     if (res.statusCode != 200) {
-      throw Exception('Invalid email or password');
+      print("STATUS CODE: ${res.statusCode}");
+      print("RESPONSE BODY: ${res.body}");
+      throw Exception(res.body);
     }
 
     final data = json.decode(res.body);
@@ -57,7 +59,7 @@ class ApiService {
     await UserSession.saveSession();
   }
 
-  /// ⭐ UPDATE NAME
+  /// UPDATE NAME
   static Future<void> updateUserName(String fullName) async {
     final res = await http.put(
       Uri.parse('$baseUrl/auth/update-name'),
@@ -76,7 +78,7 @@ class ApiService {
     await UserSession.saveSession();
   }
 
-  /// 🔐 CHANGE PASSWORD (NEW)
+  /// CHANGE PASSWORD
   static Future<void> changePassword({
     required String email,
     required String currentPassword,
@@ -147,6 +149,36 @@ class ApiService {
     }
   }
 
+  // ================= UPDATED: VERIFY TRAP DEVICE =================
+  //  Now uses backend proxy instead of direct Pi call
+
+  static Future<void> verifyTrapDevice({
+    required String trapIp,
+    required String expectedTrapId,
+  }) async {
+    try {
+      final url = Uri.parse(
+        '$baseUrl/traps/verify-device'
+            '?trapIp=$trapIp&trapId=$expectedTrapId',
+      );
+
+      print('Calling backend verify: $url');
+
+      final res = await http
+          .get(url)
+          .timeout(const Duration(seconds: 10));
+
+      print('Verify response: ${res.body}');
+
+      if (res.statusCode != 200) {
+        throw Exception('Trap verification failed');
+      }
+    } catch (e) {
+      print('VERIFY ERROR: $e');
+      rethrow;
+    }
+  }
+
   // ================= TRAPS =================
 
   static Future<List<TrapModel>> getUserTraps(String email) async {
@@ -168,7 +200,7 @@ class ApiService {
     required String trapName,
   }) async {
     final res = await http.post(
-      Uri.parse('$baseUrl/traps/add'),
+      Uri.parse('$baseUrl/traps'),
       headers: {'Content-Type': 'application/json'},
       body: json.encode({
         'email': email,
@@ -178,6 +210,7 @@ class ApiService {
     );
 
     if (res.statusCode != 200) {
+      print('ADD TRAP ERROR: ${res.body}');
       throw Exception('Failed to add trap');
     }
   }

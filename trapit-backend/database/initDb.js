@@ -5,20 +5,20 @@ db.serialize(() => {
   // USERS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
-      email TEXT PRIMARY KEY,
-      full_name TEXT,
+      email         TEXT PRIMARY KEY,
+      full_name     TEXT,
       password_hash TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at    DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 
   // TRAPS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS traps (
-      trap_id TEXT PRIMARY KEY,
+      trap_id   TEXT PRIMARY KEY,
       trap_name TEXT,
-      status INTEGER DEFAULT 1,
-      email TEXT NOT NULL,
+      status    INTEGER DEFAULT 1,
+      email     TEXT NOT NULL,
       FOREIGN KEY (email) REFERENCES users(email)
     )
   `);
@@ -26,34 +26,43 @@ db.serialize(() => {
   // CAPTURE EVENTS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS capture_events (
-      serial_no INTEGER PRIMARY KEY AUTOINCREMENT,
-      trap_id TEXT NOT NULL,
-      animal_name TEXT,
+      serial_no        INTEGER PRIMARY KEY AUTOINCREMENT,
+      trap_id          TEXT NOT NULL,
+      animal_name      TEXT,
       confidence_score REAL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      image_url        TEXT,
+      timestamp        DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (trap_id) REFERENCES traps(trap_id)
     )
   `);
 
+  // Migrate existing table if image_url column is missing
+  // (safe to run on already-created databases)
+  db.run(`ALTER TABLE capture_events ADD COLUMN image_url TEXT`, (err) => {
+    if (err && !err.message.includes('duplicate column')) {
+      console.error('Migration error:', err.message);
+    }
+  });
+
   // NOTIFICATION LOGS TABLE
   db.run(`
     CREATE TABLE IF NOT EXISTS notification_logs (
-      serial_no INTEGER PRIMARY KEY AUTOINCREMENT,
+      serial_no         INTEGER PRIMARY KEY AUTOINCREMENT,
       capture_serial_no INTEGER,
-      message TEXT,
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (capture_serial_no)
-        REFERENCES capture_events(serial_no)
+      message           TEXT,
+      sent_at           DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (capture_serial_no) REFERENCES capture_events(serial_no)
     )
   `);
 
+  // OTP TABLE
   db.run(`
-      CREATE TABLE IF NOT EXISTS otps (
-        email TEXT PRIMARY KEY,
-        otp TEXT NOT NULL,
-        expires_at INTEGER NOT NULL
-      )
-    `);
+    CREATE TABLE IF NOT EXISTS otps (
+      email      TEXT PRIMARY KEY,
+      otp        TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `);
 
   console.log('All tables initialized successfully');
 });

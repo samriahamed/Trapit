@@ -14,3 +14,24 @@ key.properties
 **/*.jks
 # Database
 trapit-backend/database/trapit.db
+
+# Flutter
+build/
+.dart_tool/
+.packages
+.pub/
+pubspec.lock
+
+# Node
+node_modules/
+trapit-backend/node_modules/
+
+# Database
+*.db
+
+# Environment
+.env
+
+# OS
+.DS_Store
+Thumbs.db

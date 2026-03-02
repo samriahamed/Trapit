@@ -10,7 +10,7 @@ const router = express.Router();
 
 router.post('/register', async (req, res) => {
 
-  console.log("🔥 REGISTER REQUEST ARRIVED");
+  console.log("REGISTER REQUEST ARRIVED");
   console.log(req.body);
 
   const { email, fullName, password } = req.body;
@@ -20,11 +20,11 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    console.log("🔥 HASHING PASSWORD...");
+    console.log("HASHING PASSWORD...");
     const hash = await bcrypt.hash(password, 10);
-    console.log("✅ PASSWORD HASHED");
+    console.log("PASSWORD HASHED");
 
-    console.log("🔥 INSERTING USER INTO DB...");
+    console.log("INSERTING USER INTO DB...");
     db.run(
       `INSERT INTO users (email, full_name, password_hash)
        VALUES (?, ?, ?)`,
@@ -33,7 +33,7 @@ router.post('/register', async (req, res) => {
 
         if (err) {
 
-          console.error("🔥 REGISTER DB ERROR:", err);
+          console.error("REGISTER DB ERROR:", err);
 
           if (err.message.includes("UNIQUE")) {
             return res.status(400).json({
@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
           });
         }
 
-        console.log("✅ USER CREATED:", email);
+        console.log("USER CREATED:", email);
 
         res.status(201).json({
           message: 'User registered successfully'
@@ -57,7 +57,7 @@ router.post('/register', async (req, res) => {
 
   } catch (err) {
 
-    console.error("🔥 REGISTER SERVER ERROR:", err);
+    console.error("REGISTER SERVER ERROR:", err);
 
     res.status(500).json({
       message: 'Server error'
@@ -69,37 +69,31 @@ router.post('/register', async (req, res) => {
 // ================= LOGIN =================
 
 router.post('/login', (req, res) => {
-  console.log("🔥 LOGIN REQUEST ARRIVED");
+  console.log("LOGIN REQUEST ARRIVED");
   console.log(req.body);
 
   const { email, password } = req.body;
 
-  console.log("🔥 FETCHING USER FROM DB...");
+  console.log("FETCHING USER FROM DB...");
   db.get(
     `SELECT * FROM users WHERE email = ?`,
     [email],
     async (err, user) => {
       if (err) {
-        console.error("🔥 LOGIN DB ERROR:", err);
+        console.error("LOGIN DB ERROR:", err);
         return res.status(500).json({ message: 'Database error' });
       }
 
       if (!user) {
-        console.error("🔥 LOGIN FAILED: User not found", email);
+        console.error("LOGIN FAILED: User not found", email);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
 
-      console.log("✅ USER FOUND:", user.email);
-
-      console.log("🔥 COMPARING PASSWORDS...");
       const match = await bcrypt.compare(password, user.password_hash);
 
       if (!match) {
-        console.error("🔥 LOGIN FAILED: Password mismatch for user", email);
         return res.status(401).json({ message: 'Invalid credentials' });
       }
-
-      console.log("✅ PASSWORD MATCH. LOGGING IN...");
 
       res.json({
         message: 'Login successful',
@@ -133,7 +127,6 @@ router.put('/update-name', (req, res) => {
     function (err) {
 
       if (err) {
-        console.error("🔥 NAME UPDATE ERROR:", err);
         return res.status(500).json({
           message: 'Failed to update name'
         });
@@ -145,8 +138,6 @@ router.put('/update-name', (req, res) => {
         });
       }
 
-      console.log("✅ NAME UPDATED:", fullName);
-
       res.json({
         message: 'Name updated successfully',
         fullName
@@ -156,7 +147,7 @@ router.put('/update-name', (req, res) => {
 });
 
 
-// ================= CHANGE PASSWORD (NEW) =================
+// ================= CHANGE PASSWORD =================
 
 router.post('/change-password', async (req, res) => {
 
@@ -183,7 +174,6 @@ router.post('/change-password', async (req, res) => {
           return res.status(404).json({ message: 'User not found' });
         }
 
-        // ✅ Verify current password
         const match = await bcrypt.compare(
           currentPassword,
           user.password_hash
@@ -195,10 +185,8 @@ router.post('/change-password', async (req, res) => {
           });
         }
 
-        // ✅ Hash new password
         const hash = await bcrypt.hash(newPassword, 10);
 
-        // ✅ Update password
         db.run(
           `UPDATE users SET password_hash = ? WHERE email = ?`,
           [hash, email],
@@ -226,9 +214,32 @@ router.post('/change-password', async (req, res) => {
 });
 
 
-// ================= FORGOT PASSWORD =================
+// ================= VALIDATE USER SESSION =================
 
-router.post('/forgot-password/send-otp', (req, res) => {
+router.get('/validate-user/:email', (req, res) => {
+  const { email } = req.params;
+
+  db.get(
+    `SELECT email FROM users WHERE email = ?`,
+    [email],
+    (err, user) => {
+      if (err) {
+        return res.status(500).json({ message: 'Database error' });
+      }
+
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      return res.status(200).json({ valid: true });
+    }
+  );
+});
+
+
+// ================= FORGOT PASSWORD - SEND OTP =================
+
+router.post('/forgot-password/send-otp', async (req, res) => {
   const { email } = req.body;
 
   if (!email) {
@@ -236,6 +247,10 @@ router.post('/forgot-password/send-otp', (req, res) => {
   }
 
   db.get(`SELECT * FROM users WHERE email = ?`, [email], async (err, user) => {
+    if (err) {
+      return res.status(500).json({ message: 'Database error' });
+    }
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -254,27 +269,42 @@ router.post('/forgot-password/send-otp', (req, res) => {
 
         try {
           await sendOTP(email, otp);
-          res.json({ message: 'OTP sent to email' });
+          return res.json({ message: 'OTP sent to email' });
         } catch (e) {
-          res.status(500).json({ message: 'Failed to send OTP email' });
+          console.error("EMAIL ERROR:", e);
+          return res.status(500).json({ message: 'Failed to send OTP email' });
         }
       }
     );
   });
 });
 
+// ================= FORGOT PASSWORD - VERIFY OTP =================
+
 router.post('/forgot-password/verify-otp', (req, res) => {
   const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ message: 'Email and OTP required' });
+  }
 
   db.get(
     `SELECT * FROM otps WHERE email = ?`,
     [email],
     (err, row) => {
+
+      if (err) {
+        return res.status(500).json({ message: 'Database error' });
+      }
+
       if (!row) {
         return res.status(400).json({ message: 'OTP not found' });
       }
 
-      if (row.otp !== otp) {
+      const enteredOtp = otp.toString().trim();
+      const storedOtp  = row.otp.toString().trim();
+
+      if (enteredOtp !== storedOtp) {
         return res.status(400).json({ message: 'Invalid OTP' });
       }
 
@@ -282,10 +312,12 @@ router.post('/forgot-password/verify-otp', (req, res) => {
         return res.status(400).json({ message: 'OTP expired' });
       }
 
-      res.json({ message: 'OTP verified' });
+      return res.json({ message: 'OTP verified' });
     }
   );
 });
+
+// ================= FORGOT PASSWORD - RESET PASSWORD =================
 
 router.post('/forgot-password/reset-password', async (req, res) => {
   const { email, newPassword } = req.body;
@@ -301,17 +333,24 @@ router.post('/forgot-password/reset-password', async (req, res) => {
       `UPDATE users SET password_hash = ? WHERE email = ?`,
       [hash, email],
       function (err) {
-        if (err || this.changes === 0) {
-          return res.status(500).json({ message: 'Failed to update password' });
+
+        if (err) {
+          return res.status(500).json({ message: 'Database error' });
         }
 
+        if (this.changes === 0) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Delete OTP after successful reset
         db.run(`DELETE FROM otps WHERE email = ?`, [email]);
 
-        res.json({ message: 'Password successfully changed' });
+        return res.json({ message: 'Password successfully changed' });
       }
     );
+
   } catch (err) {
-    res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error' });
   }
 });
 
