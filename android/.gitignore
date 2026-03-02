@@ -23,8 +23,7 @@ build/
 pubspec.lock
 
 # Node
-node_modules/
-trapit-backend/node_modules/
+**/node_modules/
 
 # Database
 *.db
